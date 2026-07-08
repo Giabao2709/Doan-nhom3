@@ -28,6 +28,22 @@ app.post('/api/auth/login', (req, res) => {
         if (row.status === 0) {
             return res.status(403).json({ success: false, message: "Tài khoản của bạn đã bị khóa quyền truy cập!" });
         }
+ // 2. BỨC TƯỜNG BẢO MẬT: Chặn nhân viên vào trang Admin
+        if (row.role !== 'Admin') {
+            return res.status(403).json({ 
+                success: false, 
+                message: "Bạn là Nhân viên. Vui lòng dùng ứng dụng của Nhân viên để đăng nhập!" 
+            });
+        }
+
+        // Nếu qua được hết các cửa trên (Không bị khóa VÀ là Admin) thì mới cho vào
+        res.json({ 
+            success: true, 
+            message: "Đăng nhập quyền Admin thành công!",
+            user: { username: row.username, name: row.full_name, role: row.role }
+        });
+    });
+});
 
 
 // =================================================================
