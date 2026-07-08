@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Quản Trị - Admin</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .login-container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 350px; text-align: center; margin-top: 100px; }
+        h2, h3 { margin-bottom: 20px; color: #333; }
+        .form-group { text-align: left; margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { padding: 10px 15px; background-color: #007bff; border: none; color: white; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        button:hover { background-color: #0056b3; }
+        .message { margin-top: 15px; font-size: 14px; font-weight: bold; padding: 10px; border-radius: 4px; display: none; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+
+        .admin-panel { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 950px; display: none; box-sizing: border-box; margin-top: 20px; }
+        .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
+        .search-box input { flex: 1; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #e9ecef; color: #495057; font-weight: bold; }
+        tr:hover { background-color: #f8f9fa; }
+    </style>
+</head>
+<body>
+
+<div id="loginSection" class="login-container">
+    <h2>Hệ Thống Admin</h2>
+    <div class="form-group"><label>Tên đăng nhập:</label><input type="text" id="username"></div>
+    <div class="form-group"><label>Mật khẩu:</label><input type="password" id="password"></div>
+    <button onclick="handleLogin()" style="width:100%;">Đăng nhập</button>
+    <div id="msgBox" class="message"></div>
+</div>
+
+<div id="adminPanelSection" class="admin-panel">
+    
+    <div id="listView">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>Quản Lý Tài Khoản Nhân Viên</h2>
+            <button onclick="showAddView()" style="background-color: #28a745;">+ Thêm tài khoản mới</button>
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Nhập tên hoặc tài khoản cần tìm..." onkeyup="searchUsers()">
+            <button onclick="searchUsers()">Tìm Kiếm</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th><th>Tên đăng nhập</th><th>Họ và tên</th><th>Email</th><th>Chức Vụ</th><th>Trạng thái</th><th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody id="userTableBody"></tbody>
+        </table>
+
+        <div id="chartView" style="margin-top: 40px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #fafafa;">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>Biểu Đồ Thống Kê Tần Suất Phòng Họp (US-07)</h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <label style="margin: 0; font-size: 14px; font-weight: normal;">Chọn ngày mốc:</label>
+                    <input type="date" id="chartDate" onchange="loadChart()" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                    <select id="timeFilter" onchange="loadChart()" style="padding: 6px; border-radius: 4px;">
+                        <option value="week">Theo 7 Ngày (Tuần)</option>
+                        <option value="month">Theo 12 Tháng</option>
+                        <option value="year">Theo 5 Năm</option>
+                    </select>
+                </div>
+            </div>
+            <canvas id="meetingChart" height="80"></canvas>
+
+            <hr style="margin: 30px 0;">
+
+            <h3>Tra Cứu Chi Tiết Cuộc Họp Theo Ngày</h3>
+            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                <input type="date" id="searchDate" style="width: 200px;">
+                <button onclick="loadDayDetails()" style="background-color: #17a2b8;">Xem Chi Tiết</button>
+            </div>
+
+            <div style="display: flex; gap: 20px; text-align: center; margin-bottom: 20px;">
+                <div style="flex: 1; padding: 15px; background: #e2e3e5; border-radius: 5px;">
+                    <h4>Tổng Số Phòng</h4><h2 style="margin:0; color:#333;" id="stTotal">-</h2>
+                </div>
+                <div style="flex: 1; padding: 15px; background: #f8d7da; border-radius: 5px;">
+                    <h4>Đang Có Họp</h4><h2 style="margin:0; color:#dc3545;" id="stBooked">-</h2>
+                </div>
+                <div style="flex: 1; padding: 15px; background: #d4edda; border-radius: 5px;">
+                    <h4>Phòng Trống</h4><h2 style="margin:0; color:#28a745;" id="stAvailable">-</h2>
+                </div>
+            </div>
+
+            <table>
+                <thead style="background-color: #17a2b8; color: white;">
+                    <tr><th>Tên Phòng Họp</th><th>Người Đặt / Chủ Trì</th></tr>
+                </thead>
+                <tbody id="meetingDetailsBody">
+                    <tr><td colspan="2" style="text-align:center;">Vui lòng chọn ngày để xem...</td></tr>
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+
+    <div id="addView" style="display: none;">
+        <h2>Cấp Tài Khoản Mới</h2>
+        <div style="max-width: 500px;">
+            <div class="form-group"><label>Tên đăng nhập (*)</label><input type="text" id="newUsername"></div>
+            <div class="form-group"><label>Mật khẩu (*)</label><input type="password" id="newPassword"></div>
+            <div class="form-group"><label>Họ và tên (*)</label><input type="text" id="newFullName"></div>
+            <div class="form-group"><label>Email</label><input type="email" id="newEmail"></div>
+            <div class="form-group">
+                <label>Chức vụ (*)</label>
+                <select id="newRole">
+                    <option value="Employee">Nhân viên</option>
+                    <option value="Admin">Quản trị viên</option>
+                </select>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <button onclick="addUser()" style="background-color: #28a745; margin-right: 10px;">Lưu Tài Khoản</button>
+                <button onclick="showListView()" style="background-color: #6c757d;">Quay Lại Danh Sách</button>
+            </div>
+            <div id="formMsg" class="message"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// Logic Đăng nhập
+async function handleLogin() {
+    const user = document.getElementById('username').value.trim();
+    const pass = document.getElementById('password').value.trim();
+    const msgBox = document.getElementById('msgBox');
+    
+    try {
+        const res = await fetch('/api/auth/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: user, password: pass}) });
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('adminPanelSection').style.display = 'block';
+            
+            searchUsers(); 
+            loadChart();   
+        } else {
+            msgBox.className = "message error"; msgBox.innerText = data.message; msgBox.style.display = "block";
+        }
+    } catch (e) { alert("Lỗi kết nối máy chủ"); }
+}
+
+function showAddView() {
+    document.getElementById('listView').style.display = 'none';
+    document.getElementById('addView').style.display = 'block';
+    document.getElementById('formMsg').style.display = 'none'; 
+}
+
+function showListView() {
+    document.getElementById('addView').style.display = 'none';
+    document.getElementById('listView').style.display = 'block';
+}
+
+async function searchUsers() {
+    const keyword = document.getElementById('searchInput').value.trim();
+    const res = await fetch(`/api/users?keyword=${keyword}`);
+    const users = await res.json();
+    const tbody = document.getElementById('userTableBody');
+    tbody.innerHTML = ''; 
+    
+    users.forEach(u => {
+        const statusBadge = u.status === 1 ? '<span style="color: green; font-weight:bold;">Hoạt động</span>' : '<span style="color: red; font-weight:bold;">Bị khóa</span>';
+        let btn = u.status === 1 
+            ? `<button onclick="changeUserStatus(${u.id}, 0, '${u.full_name}')" style="background-color: #dc3545; padding: 5px 10px;">Khóa</button>`
+            : `<button onclick="changeUserStatus(${u.id}, 1, '${u.full_name}')" style="background-color: #28a745; padding: 5px 10px;">Mở Khóa</button>`;
+
+        tbody.innerHTML += `<tr><td>${u.id}</td><td>${u.username}</td><td>${u.full_name}</td><td>${u.email||''}</td><td>${u.role}</td><td>${statusBadge}</td><td>${btn}</td></tr>`;
+    });
+}
+
+async function addUser() {
+    const data = {
+        username: document.getElementById('newUsername').value.trim(),
+        password: document.getElementById('newPassword').value.trim(),
+        full_name: document.getElementById('newFullName').value.trim(),
+        email: document.getElementById('newEmail').value.trim(),
+        role: document.getElementById('newRole').value
+    };
+    const formMsg = document.getElementById('formMsg');
+
+    try {
+        const res = await fetch('/api/users', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+        const result = await res.json();
+
+        if (result.success) {
+            alert(result.message);
+            
+            document.getElementById('newUsername').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('newFullName').value = '';
+            document.getElementById('newEmail').value = '';
+
+            searchUsers();
+            showListView();
+        } else {
+            formMsg.className = "message error"; formMsg.innerText = result.message; formMsg.style.display = "block";
+        }
+    } catch (e) { alert("Lỗi kết nối máy chủ!"); }
+}
+
+async function changeUserStatus(id, status, name) {
+    if (!confirm(status===0 ? `Khóa tài khoản [${name}]?` : `Mở khóa tài khoản [${name}]?`)) return;
+    await fetch(`/api/users/${id}/status`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({status}) });
+    searchUsers();
+}
+
+// =================================================================
+// TÍCH HỢP US-07 NÂNG CẤP: Vẽ biểu đồ và xem chi tiết phòng trống
+// =================================================================
+let myChart = null;
+
+async function loadChart() {
+    const filter = document.getElementById('timeFilter').value;
+    const dateInput = document.getElementById('chartDate');
+    
+    // Nếu cái lịch nhỏ bị bỏ trống, tự động gán ngày hôm nay vào
+    if (!dateInput.value) {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        dateInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    try {
+        // Gửi cả Tuần/Tháng/Năm VÀ Ngày mốc xuống backend
+        const res = await fetch(`/api/dashboard/stats?filter=${filter}&date=${dateInput.value}`);
+        const result = await res.json();
+        const ctx = document.getElementById('meetingChart').getContext('2d');
+        
+        if (myChart) myChart.destroy();
+        
+        myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: result.labels,
+                datasets: [{
+                    label: 'Số lượng cuộc họp',
+                    data: result.data,
+                    backgroundColor: '#007bff',
+                    borderColor: '#0056b3',
+                    borderWidth: 1
+                }]
+            },
+            options: { 
+                scales: { 
+                    y: { 
+                        beginAtZero: true, 
+                        ticks: { stepSize: 1 } // Ép trục dọc chỉ hiện số nguyên (1, 2, 3...)
+                    } 
+                } 
+            }
+        });
+    } catch (err) { console.error("Lỗi vẽ biểu đồ:", err); }
+}
+
+async function loadDayDetails() {
+    const dateInput = document.getElementById('searchDate').value;
+    if (!dateInput) return alert("Vui lòng chọn một ngày để tra cứu!");
+
+    try {
+        const res = await fetch(`/api/dashboard/details?date=${dateInput}`);
+        const data = await res.json();
+
+        // Cập nhật 3 ô thống kê tổng quát
+        document.getElementById('stTotal').innerText = data.total_rooms;
+        document.getElementById('stBooked').innerText = data.booked_count;
+        document.getElementById('stAvailable').innerText = data.available_count;
+
+        // Cập nhật bảng danh sách ai đang họp
+        const tbody = document.getElementById('meetingDetailsBody');
+        tbody.innerHTML = '';
+
+        if (data.bookings.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="2" style="text-align:center;">Không có cuộc họp nào vào ngày này. (Phòng trống 100%)</td></tr>`;
+            return;
+        }
+
+        data.bookings.forEach(b => {
+            tbody.innerHTML += `<tr><td><strong style="color:#007bff;">${b.room_name}</strong></td><td>${b.booked_by}</td></tr>`;
+        });
+    } catch (err) { alert("Lỗi khi tải chi tiết cuộc họp!"); }
+}
+</script>
+</body>
+</html>
