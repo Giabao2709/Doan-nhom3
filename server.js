@@ -74,6 +74,25 @@ app.post('/api/users', (req, res) => {
     if (!username || !password || !full_name || !role) {
         return res.status(400).json({ 
             success: false,
+message: "Lỗi! Các trường Tên đăng nhập, Mật khẩu, Họ tên và Chức vụ không được để trống." 
+        });
+    }
+
+    // Chèn dữ liệu vào CSDL kèm theo quyền (role) được chọn
+    const sql = `INSERT INTO users (username, password, full_name, email, role, status) 
+                 VALUES (?, ?, ?, ?, ?, 1)`;
+
+    db.run(sql, [username, password, full_name, email || '', role], function(err) {
+        if (err) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Lỗi! Tên đăng nhập này đã tồn tại trên hệ thống." 
+            });
+        }
+        // Trả về đúng câu thông báo bạn yêu cầu
+        res.json({ success: true, message: "bạn đã tạo tài khoản thành công" });
+    });
+});
 
 // =================================================================
 // US-05 & US-06: KHÓA / MỞ KHÓA TÀI KHOẢN NHÂN VIÊN
