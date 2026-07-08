@@ -8,6 +8,26 @@ app.use(express.json());
 // Chỉ định thư mục chứa file giao diện HTML
 app.use(express.static(path.join(__dirname, 'public')));
 
+// =================================================================
+// US-01: Đăng nhập hệ thống bảo mật
+// =================================================================
+app.post('/api/auth/login', (req, res) => {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ thông tin!" });
+    }
+
+    const sql = `SELECT id, username, full_name, role, status FROM users WHERE username = ? AND password = ?`;
+                 
+    db.get(sql, [username, password], (err, row) => {
+        if (err) return res.status(500).json({ success: false, message: "Lỗi hệ thống!" });
+        if (!row) return res.status(401).json({ success: false, message: "Sai tài khoản hoặc mật khẩu!" });
+        
+        // 1. Kiểm tra xem tài khoản có bị khóa không
+        if (row.status === 0) {
+            return res.status(403).json({ success: false, message: "Tài khoản của bạn đã bị khóa quyền truy cập!" });
+        }
 
 
 // =================================================================
