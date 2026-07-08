@@ -42,7 +42,10 @@
     <div id="listView">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h2>Quản Lý Tài Khoản Nhân Viên</h2>
-            <button onclick="showAddView()" style="background-color: #28a745;">+ Thêm tài khoản mới</button>
+            <div>
+                <button onclick="showAddView()" style="background-color: #28a745;">+ Thêm tài khoản mới</button>
+                <button onclick="handleLogout()" style="background-color: #dc3545; margin-left: 10px;">Đăng xuất</button>
+            </div>
         </div>
 
         <div class="search-box">
@@ -142,16 +145,33 @@ async function handleLogin() {
     try {
         const res = await fetch('/api/auth/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: user, password: pass}) });
         const data = await res.json();
+        
         if (data.success) {
+            // TÍCH HỢP: Lưu lại trạng thái đăng nhập vào bộ nhớ tạm
+            sessionStorage.setItem('adminLoggedIn', 'true');
+
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('adminPanelSection').style.display = 'block';
             
+            // TÍCH HỢP: Tự động gán ngày hôm nay vào các ô ngày tháng
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            document.getElementById('searchDate').value = todayStr;
+            document.getElementById('chartDate').value = todayStr;
+
             searchUsers(); 
             loadChart();   
+            loadDayDetails(); // Tự động load chi tiết phòng của hôm nay luôn
         } else {
             msgBox.className = "message error"; msgBox.innerText = data.message; msgBox.style.display = "block";
         }
     } catch (e) { alert("Lỗi kết nối máy chủ"); }
+}
+
+// Logic Đăng xuất
+function handleLogout() {
+    sessionStorage.removeItem('adminLoggedIn'); // Xóa bộ nhớ đăng nhập
+    window.location.reload(); // Tải lại trang để văng ra màn hình đăng nhập
 }
 
 function showAddView() {
@@ -227,7 +247,6 @@ async function loadChart() {
     const filter = document.getElementById('timeFilter').value;
     const dateInput = document.getElementById('chartDate');
     
-    // Nếu cái lịch nhỏ bị bỏ trống, tự động gán ngày hôm nay vào
     if (!dateInput.value) {
         const today = new Date();
         const yyyy = today.getFullYear();
@@ -237,7 +256,6 @@ async function loadChart() {
     }
 
     try {
-        // Gửi cả Tuần/Tháng/Năm VÀ Ngày mốc xuống backend
         const res = await fetch(`/api/dashboard/stats?filter=${filter}&date=${dateInput.value}`);
         const result = await res.json();
         const ctx = document.getElementById('meetingChart').getContext('2d');
@@ -260,7 +278,7 @@ async function loadChart() {
                 scales: { 
                     y: { 
                         beginAtZero: true, 
-                        ticks: { stepSize: 1 } // Ép trục dọc chỉ hiện số nguyên (1, 2, 3...)
+                        ticks: { stepSize: 1 } 
                     } 
                 } 
             }
@@ -276,12 +294,10 @@ async function loadDayDetails() {
         const res = await fetch(`/api/dashboard/details?date=${dateInput}`);
         const data = await res.json();
 
-        // Cập nhật 3 ô thống kê tổng quát
         document.getElementById('stTotal').innerText = data.total_rooms;
         document.getElementById('stBooked').innerText = data.booked_count;
         document.getElementById('stAvailable').innerText = data.available_count;
 
-        // Cập nhật bảng danh sách ai đang họp
         const tbody = document.getElementById('meetingDetailsBody');
         tbody.innerHTML = '';
 
@@ -295,6 +311,28 @@ async function loadDayDetails() {
         });
     } catch (err) { alert("Lỗi khi tải chi tiết cuộc họp!"); }
 }
+
+// =================================================================
+// TÍCH HỢP: GIỮ TRẠNG THÁI ĐĂNG NHẬP KHI BẤM F5 TẢI LẠI TRANG
+// =================================================================
+window.onload = function() {
+    if (sessionStorage.getItem('adminLoggedIn') === 'true') {
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('adminPanelSection').style.display = 'block';
+        
+        // Cài sẵn ngày hôm nay vào các ô lịch
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        
+        if (!document.getElementById('searchDate').value) document.getElementById('searchDate').value = todayStr;
+        if (!document.getElementById('chartDate').value) document.getElementById('chartDate').value = todayStr;
+
+        // Tự động tải lại mọi dữ liệu
+        searchUsers();
+        loadChart();
+        loadDayDetails();
+    }
+};
 </script>
 </body>
 </html>
