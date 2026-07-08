@@ -64,7 +64,16 @@ app.get('/api/users', (req, res) => {
         res.json(rows);
     });
 });
+// =================================================================
+// US-04: CẤP TÀI KHOẢN MỚI CHO NHÂN VIÊN MỚI
+// =================================================================
+app.post('/api/users', (req, res) => {
+    // Nhận thêm trường role (chức vụ)
+    const { username, password, full_name, email, role } = req.body;
 
+    if (!username || !password || !full_name || !role) {
+        return res.status(400).json({ 
+            success: false,
 
 // =================================================================
 // US-05 & US-06: KHÓA / MỞ KHÓA TÀI KHOẢN NHÂN VIÊN
