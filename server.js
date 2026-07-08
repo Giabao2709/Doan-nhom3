@@ -44,6 +44,26 @@ app.post('/api/auth/login', (req, res) => {
         });
     });
 });
+// =================================================================
+// US-02 & US-03: Xem danh sách và Tìm kiếm nhân viên
+// =================================================================
+app.get('/api/users', (req, res) => {
+    const keyword = req.query.keyword || '';
+    
+    const sql = `
+        SELECT id, username, full_name, email, role, status 
+        FROM users 
+        WHERE (full_name LIKE ? OR username LIKE ?) 
+        AND role = 'Employee'
+    `;
+    
+    db.all(sql, [`%${keyword}%`, `%${keyword}%`], (err, rows) => {
+        if (err) {
+            return res.status(500).json({ success: false, message: "Lỗi truy xuất dữ liệu từ hệ thống" });
+        }
+        res.json(rows);
+    });
+});
 
 
 // =================================================================
