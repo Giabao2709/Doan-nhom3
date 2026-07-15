@@ -65,7 +65,7 @@
         <div id="chartView" style="margin-top: 40px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #fafafa;">
             
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3>Biểu Đồ Thống Kê Tần Suất Phòng Họp</h3>
+                <h3>Biểu Đồ Thống Kê Tần Suất Phòng Họp (US-07)</h3>
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <label style="margin: 0; font-size: 14px; font-weight: normal;">Chọn ngày mốc:</label>
                     <input type="date" id="chartDate" onchange="loadChart()" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
@@ -147,13 +147,11 @@ async function handleLogin() {
         const data = await res.json();
         
         if (data.success) {
-            // TÍCH HỢP: Lưu lại trạng thái đăng nhập vào bộ nhớ tạm
             sessionStorage.setItem('adminLoggedIn', 'true');
 
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('adminPanelSection').style.display = 'block';
             
-            // TÍCH HỢP: Tự động gán ngày hôm nay vào các ô ngày tháng
             const today = new Date();
             const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
             document.getElementById('searchDate').value = todayStr;
@@ -161,7 +159,7 @@ async function handleLogin() {
 
             searchUsers(); 
             loadChart();   
-            loadDayDetails(); // Tự động load chi tiết phòng của hôm nay luôn
+            loadDayDetails();
         } else {
             msgBox.className = "message error"; msgBox.innerText = data.message; msgBox.style.display = "block";
         }
@@ -170,8 +168,8 @@ async function handleLogin() {
 
 // Logic Đăng xuất
 function handleLogout() {
-    sessionStorage.removeItem('adminLoggedIn'); // Xóa bộ nhớ đăng nhập
-    window.location.reload(); // Tải lại trang để văng ra màn hình đăng nhập
+    sessionStorage.removeItem('adminLoggedIn');
+    window.location.reload(); 
 }
 
 function showAddView() {
@@ -185,6 +183,7 @@ function showListView() {
     document.getElementById('listView').style.display = 'block';
 }
 
+// Logic tải danh sách nhân viên có tích hợp nút Xóa
 async function searchUsers() {
     const keyword = document.getElementById('searchInput').value.trim();
     const res = await fetch(`/api/users?keyword=${keyword}`);
@@ -194,11 +193,16 @@ async function searchUsers() {
     
     users.forEach(u => {
         const statusBadge = u.status === 1 ? '<span style="color: green; font-weight:bold;">Hoạt động</span>' : '<span style="color: red; font-weight:bold;">Bị khóa</span>';
-        let btn = u.status === 1 
-            ? `<button onclick="changeUserStatus(${u.id}, 0, '${u.full_name}')" style="background-color: #dc3545; padding: 5px 10px;">Khóa</button>`
-            : `<button onclick="changeUserStatus(${u.id}, 1, '${u.full_name}')" style="background-color: #28a745; padding: 5px 10px;">Mở Khóa</button>`;
+        
+        // 1. Tạo nút Khóa / Mở khóa
+        let lockBtn = u.status === 1 
+            ? `<button onclick="changeUserStatus(${u.id}, 0, '${u.full_name}')" style="background-color: #dc3545; padding: 5px 10px; margin-right: 5px;">Khóa</button>`
+            : `<button onclick="changeUserStatus(${u.id}, 1, '${u.full_name}')" style="background-color: #28a745; padding: 5px 10px; margin-right: 5px;">Mở Khóa</button>`;
 
-        tbody.innerHTML += `<tr><td>${u.id}</td><td>${u.username}</td><td>${u.full_name}</td><td>${u.email||''}</td><td>${u.role}</td><td>${statusBadge}</td><td>${btn}</td></tr>`;
+        // 2. BỔ SUNG: Tạo nút Xóa vĩnh viễn (Màu cam đậm để phân biệt)
+        let deleteBtn = `<button onclick="deleteUser(${u.id}, '${u.full_name}')" style="background-color: #fd7e14; padding: 5px 10px;">Xóa</button>`;
+
+        tbody.innerHTML += `<tr><td>${u.id}</td><td>${u.username}</td><td>${u.full_name}</td><td>${u.email||''}</td><td>${u.role}</td><td>${statusBadge}</td><td>${lockBtn}${deleteBtn}</td></tr>`;
     });
 }
 
@@ -236,6 +240,20 @@ async function changeUserStatus(id, status, name) {
     if (!confirm(status===0 ? `Khóa tài khoản [${name}]?` : `Mở khóa tài khoản [${name}]?`)) return;
     await fetch(`/api/users/${id}/status`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({status}) });
     searchUsers();
+}
+
+// BỔ SUNG: Logic xử lý yêu cầu Xóa nhân viên khỏi hệ thống
+async function deleteUser(id, name) {
+    if (!confirm(`CẢNH BÁO: Bạn có chắc chắn muốn XÓA VĨNH VIỄN tài khoản của [${name}] không? Thao tác này không thể hoàn tác!`)) return;
+    
+    try {
+        const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+        const result = await res.json();
+        alert(result.message);
+        searchUsers(); // Tải lại danh sách sau khi xóa
+    } catch (e) {
+        alert("Lỗi kết nối hệ thống, không thể xóa!");
+    }
 }
 
 // =================================================================
@@ -320,14 +338,12 @@ window.onload = function() {
         document.getElementById('loginSection').style.display = 'none';
         document.getElementById('adminPanelSection').style.display = 'block';
         
-        // Cài sẵn ngày hôm nay vào các ô lịch
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         
         if (!document.getElementById('searchDate').value) document.getElementById('searchDate').value = todayStr;
         if (!document.getElementById('chartDate').value) document.getElementById('chartDate').value = todayStr;
 
-        // Tự động tải lại mọi dữ liệu
         searchUsers();
         loadChart();
         loadDayDetails();
