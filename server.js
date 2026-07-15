@@ -28,7 +28,8 @@ app.post('/api/auth/login', (req, res) => {
         if (row.status === 0) {
             return res.status(403).json({ success: false, message: "Tài khoản của bạn đã bị khóa quyền truy cập!" });
         }
- // 2. BỨC TƯỜNG BẢO MẬT: Chặn nhân viên vào trang Admin
+
+        // 2. BỨC TƯỜNG BẢO MẬT: Chặn nhân viên vào trang Admin
         if (row.role !== 'Admin') {
             return res.status(403).json({ 
                 success: false, 
@@ -44,6 +45,7 @@ app.post('/api/auth/login', (req, res) => {
         });
     });
 });
+
 // =================================================================
 // US-02 & US-03: Xem danh sách và Tìm kiếm nhân viên
 // =================================================================
@@ -64,6 +66,7 @@ app.get('/api/users', (req, res) => {
         res.json(rows);
     });
 });
+
 // =================================================================
 // US-04: CẤP TÀI KHOẢN MỚI CHO NHÂN VIÊN MỚI
 // =================================================================
@@ -73,8 +76,8 @@ app.post('/api/users', (req, res) => {
 
     if (!username || !password || !full_name || !role) {
         return res.status(400).json({ 
-            success: false,
-message: "Lỗi! Các trường Tên đăng nhập, Mật khẩu, Họ tên và Chức vụ không được để trống." 
+            success: false, 
+            message: "Lỗi! Các trường Tên đăng nhập, Mật khẩu, Họ tên và Chức vụ không được để trống." 
         });
     }
 
@@ -110,6 +113,23 @@ app.put('/api/users/:id/status', (req, res) => {
         
         const msg = status === 0 ? "Tài khoản nhân viên đã được khóa!" : "Tài khoản nhân viên đã được mở khóa thành công!";
         res.json({ success: true, message: msg });
+    });
+});
+
+// =================================================================
+// BỔ SUNG: API XÓA TÀI KHOẢN NHÂN VIÊN VĨNH VIỄN
+// =================================================================
+app.delete('/api/users/:id', (req, res) => {
+    const userId = req.params.id;
+
+    const sql = `DELETE FROM users WHERE id = ?`;
+    
+    db.run(sql, [userId], function(err) {
+        if (err) {
+            return res.status(500).json({ success: false, message: "Lỗi hệ thống, không thể xóa tài khoản!" });
+        }
+        
+        res.json({ success: true, message: "Đã xóa tài khoản nhân viên vĩnh viễn khỏi hệ thống!" });
     });
 });
 
